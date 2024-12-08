@@ -11,57 +11,75 @@ class Structure:
 """
 Represents a Resident with specific attributes related to social cost and subsidy.
 """
-def __init__(self, subsidy, EAD, delta, index, h, a, resident_discount_rate):
-    """
-    Initialize a Resident instance.
+    def __init__(self, subsidy, EAD, delta, index, h, a, resident_discount_rate):
+        """
+        Initialize a Resident instance.
 
-    :param zeta: float - The social cost associated with the resident.
-    :param subsidy_i: float - The subsidy offered to the resident.
-    :delta : privately calculated damage information
-    :h : flood depth
-    : a: float - acceptance counter
-    : prob_accepting : float - probability of accepting
-    :resident_discount_rate : float - resident discount rate
-    :community_cost : float - community cost
-    """
-    self.index = index
-    self.h = h
-    self.zeta = zeta
-    self.zeta_o = zeta_o
-    self.subsidy = subsidy
+        :param zeta: float - The social cost associated with the resident.
+        :param subsidy_i: float - The subsidy offered to the resident.
+        :delta : privately calculated damage information
+        :h : flood depth
+        : a: float - acceptance counter
+        : prob_accepting : float - probability of accepting
+        :resident_discount_rate : float - resident discount rate
+        :community_cost : float - community cost
+        """
+        self.index = index
+        self.h = h
+        self.zeta = zeta
+        self.zeta_o = zeta_o
+        self.subsidy = subsidy
     
-    self.community_cost = community_cost
-    self.a = 0
-    self.EAD = EAD
-    self.delta = EAD
-    self.prob_accepting = 0.5
-    self.resident_discount_rate =  resident_discount_rate
-    self.utility = utility
-    self.obj = obj
-    self.strategy = {}
+        self.community_cost = community_cost
+        self.a = 0
+        self.EAD = EAD
+        self.delta = EAD
+        self.prob_accepting = 0.5
+        self.resident_discount_rate =  resident_discount_rate
+        self.utility = utility
+        self.obj = obj
+        self.strategy = {}
     
 
-def __repr__(self):
-    return f"Structure(Social Cost: {self.zeta}, Subsidy Offered: {self.subsidy_i})"
+    def __repr__(self):
+        return f"Structure(Social Cost: {self.zeta}, Subsidy Offered: {self.subsidy_i})"
 
-def update_a() :
-    a = 1
-
-
-# Function to calculate disutility for a resident
-def utility_structure(i, action, n_a, n_d, grd):
-    if action == 1:
-        return zeta[i] - S[i]  # Accept action utility
-    else:  # 'decline' action
-        return delta if ((n_a == 0) and (n_d == 0)) else (delta + grd.vacancy_factor(n_a, n_d) * community_cost)
-
-def u_o() :
-  if action == 1:
-      return np.random.lognormal(mean=0, sigma=1) - S[i]  # Accept action utility
-  else:  # 'decline' action
-      return ead if ((n_a == 0) and (n_d == 0)) else (ead + grd.vacancy_factor(n_a, n_d) * community_cost)
+    def update_a() :
+        a = 1
 
 
+    # Function to calculate disutility for a resident
+    def utility_structure(i, action, n_a, n_d, grd):
+        if action == 1:
+            return zeta[i] - S[i]  # Accept action utility
+        else:  # 'decline' action
+            return delta if ((n_a == 0) and (n_d == 0)) else (delta + grd.vacancy_factor(n_a, n_d) * community_cost)
+
+    def u_o() :
+      if action == 1:
+          return np.random.lognormal(mean=0, sigma=1) - S[i]  # Accept action utility
+      else:  # 'decline' action
+          return ead if ((n_a == 0) and (n_d == 0)) else (ead + grd.vacancy_factor(n_a, n_d) * community_cost)
+
+    # we need Resident's objective function here. 
+    def resident_objective_function(self, utility, action_costs, state_costs):
+            """
+            Computes the resident's objective function.
+
+            :param utility: function - Utility function u_g(s_k).
+            :param action_costs: list - Action costs a_k for each time step.
+            :param state_costs: list - State costs s_k for each time step.
+            :return: float - Minimized objective function value.
+            """
+            if len(action_costs) != len(state_costs):
+                raise ValueError("Action costs and state costs must have the same length.")
+
+            total_cost = 0
+            for t, (a_k, s_k) in enumerate(zip(action_costs, state_costs)):
+                u_sk = utility(s_k)
+                if u_sk <= utility(s_k - 1):  # Constraint u_g(s_k) ≤ u_g(s_k-1).
+                    total_cost += (self.gamma ** t) * utility(a_k)
+            return total_cost
 
 class Grid:
     """
@@ -80,7 +98,7 @@ class Grid:
         self.nd = nd
         self.v0 = v0
         self.r = r
-        self.N = self.na + self.nd  # Total number of people in the neighborhood.
+        self.N = self.na + self.nd  # Total number of people in the neighborhood. PJ(I might remove this when I set the grid size as a constant.)
         self.gamma = 1 / (1 + self.r)  # Resident discount factor.
         self.policy = policy
 
@@ -97,24 +115,7 @@ class Grid:
         v_t = self.na / (1 + v_initial * math.exp(-B * t))^(1/nu)
         return v_t
 
-    def resident_objective_function(self, utility, action_costs, state_costs):
-        """
-        Computes the resident's objective function.
-
-        :param utility: function - Utility function u_g(s_k).
-        :param action_costs: list - Action costs a_k for each time step.
-        :param state_costs: list - State costs s_k for each time step.
-        :return: float - Minimized objective function value.
-        """
-        if len(action_costs) != len(state_costs):
-            raise ValueError("Action costs and state costs must have the same length.")
-
-        total_cost = 0
-        for t, (a_k, s_k) in enumerate(zip(action_costs, state_costs)):
-            u_sk = utility(s_k)
-            if u_sk <= utility(s_k - 1):  # Constraint u_g(s_k) ≤ u_g(s_k-1).
-                total_cost += (self.gamma ** t) * utility(a_k)
-        return total_cost
+    
 
 
 
@@ -215,7 +216,7 @@ def load_data():
     merged_df = pd.merge(resident_info, ead_info, on='structure_id', how='left', validate='1:1')
     merged_df.fillna(0, inplace=True)
     resident_info = merged_df[['structure_id', 'replacement_cost', 'relocation_cost', 'mhi_ratio']]
-    ead_info_new = merged_df.drop(['replacement_cost', 'relocation_cost', 'mhi_ratio'], axis=1)
+    #ead_info_new = merged_df.drop(['replacement_cost', 'relocation_cost', 'mhi_ratio'], axis=1)
     ead_info_new.fillna(0, inplace=True)
     return resident_info, ead_info_new
 
@@ -232,23 +233,17 @@ def main():
     gamma = 1 / (1 + r)
     v0 = 0.1  # Initial vacancy factor
 
-    # Homeowner attributes
-    np.random.seed(42)
-    zeta = np.random.uniform(50, 200, num_structures)
-    S = np.random.uniform(0, 50, num_structures)
-    C = np.random.uniform(10, 100, num_structures)
-    EAD = np.random.uniform(1000, 5000, num_structures)
 
     policy_net = PolicyNetwork(4, 4)
     value_net = ValueNetwork(4)
     policy_optimizer = optim.Adam(policy_net.parameters(), lr=0.001)
     value_optimizer = optim.Adam(value_net.parameters(), lr=0.001)
 
-    # Example main loop
+    # Example main loop: here we want oracle's Utility to be minimized and want to find the policy pi which will result that minimum.
     for episode in range(num_episodes):
         state = np.random.rand(4)
-        action = np.random.choice([0, 1])  # Random action
-        reward = np.random.rand()
+        #action = np.random.choice([0, 1])  # Random action
+        #reward = np.random.rand()
         next_state = state + 0.1 * (np.random.rand(4) - 0.5)
         advantage = reward + gamma * reward - reward
 
