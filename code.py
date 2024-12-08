@@ -5,81 +5,93 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
 import math
-
+from google.colab import drive
+drive.mount('/content/drive')
 
 class Structure:
-"""
-Represents a Resident with specific attributes related to social cost and subsidy.
-"""
-    def __init__(self, subsidy, EAD, delta, index, h, a, resident_discount_rate):
-        """
-        Initialize a Resident instance.
+  """
+  Represents a Resident with specific attributes related to social cost and subsidy.
+  """
+  def __init__(self, subsidy, EAD, delta, index, h, a, resident_discount_rate):
+    """
+    Initialize a Resident instance.
 
-        :param zeta: float - The social cost associated with the resident.
-        :param subsidy_i: float - The subsidy offered to the resident.
-        :delta : privately calculated damage information
-        :h : flood depth
-        : a: float - acceptance counter
-        : prob_accepting : float - probability of accepting
-        :resident_discount_rate : float - resident discount rate
-        :community_cost : float - community cost
-        """
-        self.index = index
-        self.h = h
-        self.zeta = zeta
-        self.zeta_o = zeta_o
-        self.subsidy = subsidy
-    
-        self.community_cost = community_cost
-        self.a = 0
-        self.EAD = EAD
-        self.delta = EAD
-        self.prob_accepting = 0.5
-        self.resident_discount_rate =  resident_discount_rate
-        self.utility = utility
-        self.obj = obj
-        self.strategy = {}
-    
+    :param zeta: float - The social cost associated with the resident.
+    :param subsidy_i: float - The subsidy offered to the resident.
+    :delta : privately calculated damage information
+    :h : flood depth
+    : a: float - acceptance counter
+    : prob_accepting : float - probability of accepting
+    :resident_discount_rate : float - resident discount rate
+    :community_cost : float - community cost
+    """
+    self.index = index
+    self.h = h
+    self.zeta = zeta
+    self.zeta_o = zeta_o
+    self.subsidy = subsidy
 
-    def __repr__(self):
-        return f"Structure(Social Cost: {self.zeta}, Subsidy Offered: {self.subsidy_i})"
+    self.community_cost = community_cost
+    self.a = 0
+    self.EAD = EAD
+    self.delta = EAD
+    self.prob_accepting = 0.5
+    self.resident_discount_rate =  resident_discount_rate
+    self.utility = utility
+    self.obj = obj
+    self.strategy = {}
+  
 
-    def update_a() :
-        a = 1
+  def __repr__(self):
+      return f"Structure(Social Cost: {self.zeta}, Subsidy Offered: {self.subsidy_i})"
+
+  def update_a() :
+      a = 1
 
 
-    # Function to calculate disutility for a resident
-    def utility_structure(i, action, n_a, n_d, grd):
-        if action == 1:
-            return zeta[i] - S[i]  # Accept action utility
-        else:  # 'decline' action
-            return delta if ((n_a == 0) and (n_d == 0)) else (delta + grd.vacancy_factor(n_a, n_d) * community_cost)
-
-    def u_o() :
+  # Function to calculate disutility for a resident
+  def utility_structure(i, action, n_a, n_d, grd):
       if action == 1:
-          return np.random.lognormal(mean=0, sigma=1) - S[i]  # Accept action utility
+          return zeta[i] - S[i]  # Accept action utility
       else:  # 'decline' action
-          return ead if ((n_a == 0) and (n_d == 0)) else (ead + grd.vacancy_factor(n_a, n_d) * community_cost)
+          return delta if ((n_a == 0) and (n_d == 0)) else (delta + grd.vacancy_factor(n_a, n_d) * community_cost)
 
-    # we need Resident's objective function here. 
-    def resident_objective_function(self, utility, action_costs, state_costs):
-            """
-            Computes the resident's objective function.
+  def u_o() :
+    if action == 1:
+        return np.random.lognormal(mean=0, sigma=1) - S[i]  # Accept action utility
+    else:  # 'decline' action
+        return ead if ((n_a == 0) and (n_d == 0)) else (ead + grd.vacancy_factor(n_a, n_d) * community_cost)
 
-            :param utility: function - Utility function u_g(s_k).
-            :param action_costs: list - Action costs a_k for each time step.
-            :param state_costs: list - State costs s_k for each time step.
-            :return: float - Minimized objective function value.
-            """
-            if len(action_costs) != len(state_costs):
-                raise ValueError("Action costs and state costs must have the same length.")
+  # we need Resident's objective function here. 
+  def resident_objective_function(self, utility, action_costs, state_costs):
+          """
+          Computes the resident's objective function.
 
-            total_cost = 0
-            for t, (a_k, s_k) in enumerate(zip(action_costs, state_costs)):
-                u_sk = utility(s_k)
-                if u_sk <= utility(s_k - 1):  # Constraint u_g(s_k) ≤ u_g(s_k-1).
-                    total_cost += (self.gamma ** t) * utility(a_k)
-            return total_cost
+          :param utility: function - Utility function u_g(s_k).
+          :param action_costs: list - Action costs a_k for each time step.
+          :param state_costs: list - State costs s_k for each time step.
+          :return: float - Minimized objective function value.
+          """
+          if len(action_costs) != len(state_costs):
+              raise ValueError("Action costs and state costs must have the same length.")
+
+          total_cost = 0
+          for t, (a_k, s_k) in enumerate(zip(action_costs, state_costs)):
+              u_sk = utility(s_k)
+              if u_sk <= utility(s_k - 1):  # Constraint u_g(s_k) ≤ u_g(s_k-1).
+                  total_cost += (self.gamma ** t) * utility(a_k)
+          return total_cost
+
+  def strategy_update(self, t):
+    """
+    Updates the strategy and records the first time period `t` at which a == 1.
+    
+    :param t: int - The current time step.
+    """
+    if self.a == 1 and 'first_accept_period' not in self.strategy:
+        self.strategy['first_accept_period'] = t
+        print(f"First time acceptance recorded at time period {t} for Structure {self.index}.")
+
 
 class Grid:
     """
@@ -211,19 +223,90 @@ class Oracle() :
 
 def load_data():
     """ Load data from CSV files. """
-    resident_info = pd.read_csv("cost_replacement_relocation.csv")
-    ead_info = pd.read_csv('EAD_g500_interpolated.csv')
+    resident_info = pd.read_csv("cost_replacement_relocation_with_mhi_ratio.csv")
+    ead_info = pd.read_csv('shortened_file.csv')
     merged_df = pd.merge(resident_info, ead_info, on='structure_id', how='left', validate='1:1')
     merged_df.fillna(0, inplace=True)
     resident_info = merged_df[['structure_id', 'replacement_cost', 'relocation_cost', 'mhi_ratio']]
-    #ead_info_new = merged_df.drop(['replacement_cost', 'relocation_cost', 'mhi_ratio'], axis=1)
-    ead_info_new.fillna(0, inplace=True)
-    return resident_info, ead_info_new
+
+    return resident_info
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class PolicyNetwork(nn.Module):
+    """
+    A neural network that takes a state as input and outputs probabilities over actions.
+    Used for selecting actions in policy-based RL.
+    """
+    def __init__(self, state_dim, action_dim, hidden_dim=128):
+        """
+        Initialize the Policy Network.
+
+        :param state_dim: int - Dimension of the input state vector.
+        :param action_dim: int - Number of possible actions.
+        :param hidden_dim: int - Number of neurons in the hidden layer.
+        """
+        super(PolicyNetwork, self).__init__()
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(state_dim, hidden_dim)  # First hidden layer
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)  # Second hidden layer
+        self.fc3 = nn.Linear(hidden_dim, action_dim)  # Final layer to output action logits
+        
+    def forward(self, state):
+        """
+        Forward pass of the Policy Network.
+        
+        :param state: torch.Tensor - The input state vector.
+        :return: torch.Tensor - Probability distribution over actions.
+        """
+        x = F.relu(self.fc1(state))  # Apply ReLU activation
+        x = F.relu(self.fc2(x))      # Apply ReLU activation
+        logits = self.fc3(x)         # Output raw action scores (logits)
+        
+        # Apply softmax to convert logits to probabilities
+        action_probs = F.softmax(logits, dim=-1)
+        
+        return action_probs
 
 
+class ValueNetwork(nn.Module):
+    """
+    A neural network that takes a state as input and outputs the estimated value of that state.
+    Used as a critic in actor-critic algorithms to evaluate state quality.
+    """
+    def __init__(self, state_dim, hidden_dim=128):
+        """
+        Initialize the Value Network.
+
+        :param state_dim: int - Dimension of the input state vector.
+        :param hidden_dim: int - Number of neurons in the hidden layer.
+        """
+        super(ValueNetwork, self).__init__()
+        
+        # Fully connected layers
+        self.fc1 = nn.Linear(state_dim, hidden_dim)  # First hidden layer
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)  # Second hidden layer
+        self.fc3 = nn.Linear(hidden_dim, 1)  # Final layer to output a single value (V(s))
+        
+    def forward(self, state):
+        """
+        Forward pass of the Value Network.
+        
+        :param state: torch.Tensor - The input state vector.
+        :return: torch.Tensor - Estimated value of the current state.
+        """
+        x = F.relu(self.fc1(state))  # Apply ReLU activation
+        x = F.relu(self.fc2(x))      # Apply ReLU activation
+        value = self.fc3(x)          # Output raw value (V(s))
+        
+        return value
+  
 def main():
     """ Main function to execute the refactored logic. """
-    resident_info, ead_info_new = load_data()
+    resident_info = load_data()
 
     num_structures = 10000
     num_rounds = 20
@@ -243,7 +326,8 @@ def main():
     for episode in range(num_episodes):
         state = np.random.rand(4)
         #action = np.random.choice([0, 1])  # Random action
-        #reward = np.random.rand()
+        u_o = structure.u_o(action, n_a, n_d, grid)  # Oracle's utility
+        reward = -u_o
         next_state = state + 0.1 * (np.random.rand(4) - 0.5)
         advantage = reward + gamma * reward - reward
 
